@@ -1,0 +1,7 @@
+CHAT_SIZE = 12
+YB = 'X'
+PLAYER = '@'
+EMPTY = ' '
+PICK_N_LARGEST = 4
+EvalUnit = 4
+AGRESSIVE = 0.5
