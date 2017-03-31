@@ -1,7 +1,77 @@
 from config import *
 import heapq
+import re
+from Group import *
 
-#TODO:需要优化、需要改良代码的书写
+def MatchContinueDress(who, s):
+	ret = []
+	pattern = MATCH_YB_CONTINUE_DRESS if who == YB else MATCH_PLAYER_CONTINUE_DRESS
+	for i in re.finditer(pattern, s):
+		group = Group(i.span()[0], i.span()[1] - 1)
+#		print(group)
+		ret.append(group)
+	ret.sort()
+	return ret
+
+#TODO:注意双向！要写全！
+def MatchCaseCorrection(who, _str):
+	''' 
+	1 #XXX__ __平均为 **2.5
+	2 #XXX_# _衰减 / unit
+	4 #XX_ _ _ left _ down to / (unit ** 0.5)
+	5 #XX__# left _ 衰减为/unit
+	6 #XX_#  _ down to /unit
+	7 #XX_X# _ down to / (unit)
+	'''
+	op = YB if who == PLAYER else PLAYER
+	s1 = op + who * 3 + EMPTY * 2
+	s2 = op + who * 3 + EMPTY + op
+	s3 = op + EMPTY + who * 2 + EMPTY + op
+	s4 = op + who * 2 + EMPTY * 3
+	s5 = op + who * 2 + EMPTY * 2 + op
+	s6 = op + who * 2 + EMPTY + op
+	s7 = op + who * 2 + EMPTY + who + op
+
+	s = op + _str + op
+	ret = []
+	for i in re.finditer(s1, s):
+		beg = i.span()[0]
+		pos1 = beg + 4
+		pos2 = beg + 5
+		c1 = Correction(pos1 - 1, EvalUnit ** -0.5)
+		c2 = Correction(pos2 - 1, EvalUnit ** 0.5)
+		ret.append(c1)
+		ret.append(c2)
+		print('case1')
+	for i in re.finditer(s2, s):
+		beg = i.span()[0]
+		pos = beg + 4
+		ret.append(Correction(pos - 1, 1 / (EvalUnit**2)))
+		print('case 2')
+	for i in re.finditer(s4, s):
+		beg = i.span()[0]
+		pos1 = beg + 3
+		pos2 = beg + 4
+		ret.append(Correction(pos1 - 1, 1 / (EvalUnit**0.5)))
+		ret.append(Correction(pos2 - 1, EvalUnit ** 0.5))
+		print('case4')
+	for i in re.finditer(s5, s):
+		beg = i.span()[0]
+		pos = beg + 3
+		ret.append(Correction(pos - 1, 1 / (EvalUnit**0.5)))
+		print('case5')
+	for i in re.finditer(s6, s):
+		beg = i.span()[0]
+		pos = beg + 3
+		ret.append(Correction(pos - 1, 1 / EvalUnit))
+		print('case6')
+	for i in re.finditer(s7, s):
+		beg = i.span()[0]
+		pos = beg + 3
+		ret.append(Correction(pos - 1, 1 / (EvalUnit**2)))
+		print('case7')
+	return ret
+
 def SumUp(a, b):
 	ret = [[0 for x in range(CHAT_SIZE)] for x in range(CHAT_SIZE)]
 	for x in range(CHAT_SIZE):
@@ -40,9 +110,13 @@ class Gomoku(object):
 			
 	
 	def __str__(self):
-		ret = '  0 1 2 3 4 5 6 7 8 9 w y\n'
+		ret = '  '
 		for x in range(CHAT_SIZE):
-			ret += (str(x) if x < 10 else 'w' if x == 10 else 'y') + ' '
+			ret += INDEX_LIST[x] + ' '
+		ret += '\n'
+		
+		for x in range(CHAT_SIZE):
+			ret += INDEX_LIST[x] + ' '
 			for y in range(CHAT_SIZE):
 				ret += self.square[y][x] + ' '
 			ret += '\n'
@@ -59,69 +133,79 @@ class Gomoku(object):
 		self._checkEmpty(x, y)
 		self.square[x][y] = who
 	
-	#TODO:需要修正，三连或四连被堵路的情况
 	def _EvaluateRow(self, who):
+		''' 
+		#XXX__ __平均为 **2.5
+		#XXX_# _衰减 / unit
+		#_XX_# _ _衰减 /unit 
+		#XX_ _ _ left _ down to /unit
+		#XX__# left _ 衰减为/unit
+		#XX_#  _ down to /unit
+		#XX_X# _ down to / (unit)
+		'''
 		table = [[1 for x in range(CHAT_SIZE)] for x in range(CHAT_SIZE)]
 		op = YB if who == PLAYER else PLAYER
-		for row in range(CHAT_SIZE):
-			beg = 0
-			while beg < CHAT_SIZE:
-				while beg < CHAT_SIZE and not self._isDress(who, beg, row):
-					beg += 1
-				if beg >= CHAT_SIZE:break
-				
-				length = 1
-				while beg + length < CHAT_SIZE and self._isDress(who, beg + length, row):
-					length += 1
-				end = beg + length - 1
-				
-#				print('find group ({}) to ({}) in row {}'.format(beg, end, row))
-				
-				cur = beg - 1
-				while cur >= 0 and not self._isDress(op, cur, row):
-					value = EvalUnit ** (length - (beg - cur) + 1)
+		for y in range(CHAT_SIZE):
+			row_str = ''
+			for x in range(CHAT_SIZE):
+				row_str += self.square[x][y]
+			group_list = MatchContinueDress(who, row_str)
+			for group in group_list:
+				b = group.begin - 1
+				while b >= 0 and not self._isDress(op, b, y):
+					value = EvalUnit ** (group.length - (group.begin - b) + 1)
 					if value <= 1: break
-					table[cur][row] *= value
-					cur -= 1
-				cur = end + 1
-				while cur < CHAT_SIZE and not self._isDress(op, cur, row):
-					value = EvalUnit ** (length - (cur - end) + 1)
-					if value <= 1: break
-					table[cur][row] *= value
-					cur += 1					
-				beg = end + 1
+#					print(b, y, value)
+					table[b][y] *= value
+					b -= 1
+				b = group.end + 1
+				while b < CHAT_SIZE and not self._isDress(op, b, y):
+					value = EvalUnit ** (group.length - (b - group.end) + 1)
+					if value <= 1:break
+#					print(b, y, value)
+					table[b][y] *= value
+					b += 1
+			
+			correction = MatchCaseCorrection(who, row_str)
+			for item in correction:
+				table[item.position][y] *= item.value
+			
+			correction = MatchCaseCorrection(who, row_str[::-1])
+			for item in correction:
+				table[CHAT_SIZE - 1 - item.position][y] *= item.value
 		return table
 				
 	def _EvaluateColumn(self, who):
 		table = [[1 for x in range(CHAT_SIZE)] for x in range(CHAT_SIZE)]
 		op = YB if who == PLAYER else PLAYER
-		for column in range(CHAT_SIZE):
-			beg = 0
-			while beg < CHAT_SIZE:
-				while beg < CHAT_SIZE and not self._isDress(who, column, beg):
-					beg += 1
-				if beg >= CHAT_SIZE:break
-			
-				length = 1
-				while beg + length < CHAT_SIZE and self._isDress(who, column, beg + length):
-					length += 1
-				end = beg + length - 1
-			
-#				print('find group ({}) to ({}) in column {}'.format(beg, end, column))
-			
-				cur = beg - 1
-				while cur >= 0 and not self._isDress(op, column, cur):
-					value = EvalUnit ** (length - (beg - cur) + 1)
+		for col in range(CHAT_SIZE):
+			col_str = ''.join(self.square[col])
+#			print('::', col_str)
+			group_list = MatchContinueDress(who, col_str)
+			for group in group_list:
+				b = group.begin - 1
+				while b >= 0 and not self._isDress(op, col, b):
+					value = EvalUnit ** (group.length - (group.begin - b) + 1)
 					if value <= 1: break
-					table[column][cur] *= value
-					cur -= 1
-				cur = end + 1
-				while cur < CHAT_SIZE and not self._isDress(op, column, cur):
-					value = EvalUnit ** (length - (cur - end) + 1)
-					if value <= 1: break
-					table[column][cur] *= value
-					cur += 1
-				beg = end + 1
+#					print(col, b, value)
+					table[col][b] *= value
+					b -= 1
+				b = group.end + 1
+				while b < CHAT_SIZE and not self._isDress(op, col, b):
+					value = EvalUnit ** (group.length - (b - group.end) + 1)
+					if value <= 1:break
+#					print(col, b, value)
+					table[col][b] *= value
+					b += 1
+					
+#			print(':', col_str)
+			correction = MatchCaseCorrection(who, col_str)
+			for item in correction:
+				table[col][item.position] *= item.value
+			
+			correction = MatchCaseCorrection(who, col_str[::-1])
+			for item in correction:
+				table[col][CHAT_SIZE - 1 - item.position] *= item.value
 		return table
 	
 	def _EvaluateSlope(self, who):
@@ -134,79 +218,165 @@ class Gomoku(object):
 		table = [[1 for x in range(CHAT_SIZE)] for x in range(CHAT_SIZE)]
 		op = YB if who == PLAYER else PLAYER
 		for start_x in range(5 - 1, CHAT_SIZE):
-			bx = start_x
-			by = 0
-			while bx >= 0:
-				while bx >= 0 and not self._isDress(who, bx, by):
+			slope_str = ''
+			x = start_x
+			y = 0
+			while x >= 0:
+				slope_str += self.square[x][y]
+				x -= 1
+				y += 1
+#			if (start_x == CHAT_SIZE - 1) : print('here',slope_str)
+			group_list = MatchContinueDress(who, slope_str)
+			for group in group_list:
+				bx = start_x - group.begin + 1
+				by = 0 + group.begin - 1
+				while by >= 0 and not self._isDress(op, bx, by):
+					value = EvalUnit ** (group.length - (bx - start_x + group.begin) + 1)
+					if value <= 1: break
+#					print(1, bx, by, value)
+					table[bx][by] *= value
+					bx += 1
+					by -= 1
+				bx = start_x - group.end - 1
+				by = 0 + group.end + 1
+				while bx >= 0 and not self._isDress(op, bx, by):
+					value = EvalUnit ** (group.length - (start_x - group.end - bx) + 1)
+					if value <= 1:break
+					table[bx][by] *= value
 					bx -= 1
 					by += 1
-				if bx < 0:break
+#			print(':', slope_str)
+			correction = MatchCaseCorrection(who, slope_str)
+			for item in correction:
+				table[start_x - item.position][0 + item.position] *= item.value
 			
-				length = 1
-				while bx - length >= 0 and self._isDress(who, bx - length, by + length):
-					length += 1
-				ex = bx - length + 1
-				ey = by + length - 1
-			
-#				print('find group ({}, {}) to ({}, {}) '.format(bx, by, ex, ey))
-
-				cur_x = bx + 1
-				cur_y = by - 1
-				while cur_y >= 0 and not self._isDress(op, cur_x, cur_y):
-					value = EvalUnit ** (length - (cur_x - bx) + 1)
-					if value <= 1: break
-					table[cur_x][cur_y] *= value
-					cur_x += 1
-					cur_y -= 1
-				cur_x = ex - 1
-				cur_y = ey + 1
-				while cur_x >= 0 and not self._isDress(op, cur_x, cur_y):
-					value = EvalUnit ** (length - (ex - cur_x) + 1)
-					if value <= 1: break
-					table[cur_x][cur_y] *= value
-					cur_x -= 1
-					cur_y += 1
-				
-				bx = ex - 1
-				by = ey + 1
-		
+			correction = MatchCaseCorrection(who, slope_str[::-1])
+			for item in correction:
+				table[item.position][start_x - item.position] *= item.value
+					
+		'''part two'''
 		for start_y in range(1, CHAT_SIZE - 5 + 1):
-			by = start_y
-			bx = CHAT_SIZE - 1
-			while by < CHAT_SIZE:
-				while by < CHAT_SIZE and not self._isDress(who, bx, by):
+			slope_str = ''
+			y = start_y
+			x = CHAT_SIZE - 1
+			while x >= 0 and y < CHAT_SIZE:
+				slope_str += self.square[x][y]
+				x -= 1
+				y += 1
+#			if (start_x == CHAT_SIZE - 1) : print('here',slope_str)
+			group_list = MatchContinueDress(who, slope_str)
+			for group in group_list:
+#				print(group)
+				bx = CHAT_SIZE - 1 - group.begin + 1
+				by = start_y + group.begin - 1
+				while by >= 0 and bx < CHAT_SIZE and not self._isDress(op, bx, by):
+					value = EvalUnit ** (group.length - (start_y + group.begin - by) + 1)
+					if value <= 1: break
+#					print(bx, by, value)
+					table[bx][by] *= value
+					bx += 1
+					by -= 1
+				bx = CHAT_SIZE - 1 - group.end - 1
+				by = start_y + group.end + 1
+				while bx >= 0 and by < CHAT_SIZE and not self._isDress(op, bx, by):
+					value = EvalUnit ** (group.length - (by - start_y - group.end) + 1)
+					if value <= 1:break
+#					print(bx, by, value)
+					table[bx][by] *= value
 					bx -= 1
 					by += 1
-#					print('{}, {}'.format(bx, by))
-				if by >= CHAT_SIZE:break
+					
+			correction = MatchCaseCorrection(who, slope_str)		
+			for item in correction:
+				table[CHAT_SIZE - 1 - item.position][start_y + item.position] *= item.value
+			
+			correction = MatchCaseCorrection(who, slope_str[::-1])
+			for item in correction:
+				table[start_y + item.position][CHAT_SIZE - 1 - item.position] *= item.value
+		#TODO:start here
+		return table
 	
-				length = 1
-				while by + length < CHAT_SIZE and self._isDress(who, bx - length, by + length):
-					length += 1
-				ex = bx - length + 1
-				ey = by + length - 1
-	
-				print('find group ({}, {}) to ({}, {}) '.format(bx, by, ex, ey))
-
-				cur_x = bx + 1
-				cur_y = by - 1
-				while cur_x < CHAT_SIZE and not self._isDress(op, cur_x, cur_y):
-					value = EvalUnit ** (length - (cur_x - bx) + 1)
+	def _EvaluateMainSlope(self, who):
+		table = [[1 for x in range(CHAT_SIZE)] for x in range(CHAT_SIZE)]
+		op = YB if who == PLAYER else PLAYER
+		for start_x in range(0, CHAT_SIZE - 5 + 1):
+			slope_str = ''
+			x = start_x
+			y = 0
+			while x < CHAT_SIZE:
+				slope_str += self.square[x][y]
+				x += 1
+				y += 1
+#			if (start_x == CHAT_SIZE - 1) : print('here',slope_str)
+			group_list = MatchContinueDress(who, slope_str)
+			for group in group_list:
+				bx = start_x + group.begin - 1
+				by = 0 + group.begin - 1
+				while by >= 0 and bx >= 0 and not self._isDress(op, bx, by):
+					value = EvalUnit ** (group.length - (start_x + group.begin - bx) + 1)
 					if value <= 1: break
-					table[cur_x][cur_y] *= value
-					cur_x += 1
-					cur_y -= 1
-				cur_x = ex - 1
-				cur_y = ey + 1
-				while cur_y < CHAT_SIZE and not self._isDress(op, cur_x, cur_y):
-					value = EvalUnit ** (length - (ex - cur_x) + 1)
+#					print(bx, by, value)
+					table[bx][by] *= value
+					bx -= 1
+					by -= 1
+				bx = start_x + group.end + 1
+				by = 0 + group.end + 1
+				while bx < CHAT_SIZE and not self._isDress(op, bx, by):
+					value = EvalUnit ** (group.length - (bx - start_x - group.end) + 1)
+					if value <= 1:break
+#					print(bx, by, value)
+					table[bx][by] *= value
+					bx += 1
+					by += 1
+					
+			correction = MatchCaseCorrection(who, slope_str)
+			for item in correction:
+				table[start_x + item.position][0 + item.position] *= item.value
+			
+			correction = MatchCaseCorrection(who, slope_str[::-1])
+			for item in correction:
+				table[CHAT_SIZE - 1 - item.position][CHAT_SIZE - 1 - start_x - item.position] *= item.value
+					
+		'''part two'''
+		for start_y in range(1, CHAT_SIZE - 5 + 1):
+			slope_str = ''
+			y = start_y
+			x = 0
+			while x >= 0 and y < CHAT_SIZE:
+				slope_str += self.square[x][y]
+				x += 1
+				y += 1
+#			if (start_x == CHAT_SIZE - 1) : print('here',slope_str)
+			group_list = MatchContinueDress(who, slope_str)
+			for group in group_list:
+#				print(group)
+				bx = 0 + group.begin - 1
+				by = start_y + group.begin - 1
+				while by < CHAT_SIZE and bx >= 0 and not self._isDress(op, bx, by):
+					value = EvalUnit ** (group.length - (start_y + group.begin - by) + 1)
 					if value <= 1: break
-					table[cur_x][cur_y] *= value
-					cur_x -= 1
-					cur_y += 1
-		
-				bx = ex - 1
-				by = ey + 1
+#					print(bx, by, value)
+					table[bx][by] *= value
+					bx -= 1
+					by -= 1
+				bx = 0 + group.end + 1
+				by = start_y + group.end + 1
+				while bx < CHAT_SIZE and by < CHAT_SIZE and not self._isDress(op, bx, by):
+					value = EvalUnit ** (group.length - (by - start_y - group.end) + 1)
+					if value <= 1:break
+#					print(bx, by, value)
+					table[bx][by] *= value
+					bx += 1
+					by += 1
+					
+			correction = MatchCaseCorrection(who, slope_str)
+			for item in correction:
+				table[0 + item.position][start_y + item.position] *= item.value
+			
+			correction = MatchCaseCorrection(who, slope_str[::-1])
+			for item in correction:
+				table[CHAT_SIZE - 1 - start_y - item.position][CHAT_SIZE - 1 - item.position] *= item.value
+				
 		return table
 				
 	def GetRandAnswer(self, ls): #TODO
@@ -218,9 +388,11 @@ class Gomoku(object):
 		row = self._EvaluateRow(who)
 		column = self._EvaluateColumn(who)
 		slope = self._EvaluateSlope(who)
+		main_slop = self._EvaluateMainSlope(who)
 		#DEBUG:
-#		print('row:')
-#		print(row)
+#		if who == YB:
+#			print('row:')
+#			print(row)
 #		print('\n\n')
 #		print('column')
 #		print(column)
@@ -229,7 +401,7 @@ class Gomoku(object):
 #		print(slope)
 #		print('\n\n')
 #		print(SumUp(column, slope))
-		return SumUp(row, SumUp(column, slope))
+		return SumUp(SumUp(row,column), SumUp(main_slop, slope))
 	
 	#TODO:堆的处理：value = 1的值直接舍弃。其余情况按概率选择下子
 	def Evaluate(self):
