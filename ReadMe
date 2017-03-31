@@ -19,7 +19,18 @@
 	
 	先手：
 		目前只支持玩家先手
-	
+
+文件介绍：
+	Gomoku.py
+		程序的主题，包含整个五子棋的逻辑
+	Group.py
+		连着的n个相同的棋子视为一个Group
+		该文件实现了Group class
+	config.py
+		包含了一些全局变量
+	unitTest.py
+		对程序的单元测试
+		检验程序对大量特殊情况的处理和随机局面的处理
 关于：
 	作者：
 		YanBin in SYSU
