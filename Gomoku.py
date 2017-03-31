@@ -3,6 +3,11 @@ import heapq
 import re
 from Group import *
 
+def YBHasWin(Exception):
+	pass
+def PLAYERHasWin(Exception):
+	pass
+
 def MatchContinueDress(who, s):
 	ret = []
 	pattern = MATCH_YB_CONTINUE_DRESS if who == YB else MATCH_PLAYER_CONTINUE_DRESS
@@ -13,6 +18,28 @@ def MatchContinueDress(who, s):
 	ret.sort()
 	return ret
 
+def ParseIntPair(s):
+	ls = s.split(' ')
+	ret = []
+	if not re.match(r'\w \w$', s):
+		raise SyntaxError('Syntax Error')
+	
+	try:
+		for num in ls:
+			ret.append(INDEX_LIST.index(num))
+	except Exception:
+		raise IndexError('Position Not Valid')
+	return tuple(ret)
+
+def SideCorrection(table):
+	cor = 1 / (EvalUnit ** 0.5)
+	for x in range(CHAT_SIZE):
+		table[x][0] *= cor
+		table[x][CHAT_SIZE - 1] *= cor
+	for y in range(CHAT_SIZE):
+		table[0][y] *= cor
+		table[CHAT_SIZE - 1][y] *= cor
+
 #TODO:注意双向！要写全！
 def MatchCaseCorrection(who, _str):
 	''' 
@@ -22,6 +49,12 @@ def MatchCaseCorrection(who, _str):
 	5 #XX__# left _ 衰减为/unit
 	6 #XX_#  _ down to /unit
 	7 #XX_X# _ down to / (unit)
+	
+	8 _XXXX_
+	9 #XXXX_
+	
+	w_yb XXXXX
+	w_player XXXXX
 	'''
 	op = YB if who == PLAYER else PLAYER
 	s1 = op + who * 3 + EMPTY * 2
@@ -31,7 +64,13 @@ def MatchCaseCorrection(who, _str):
 	s5 = op + who * 2 + EMPTY * 2 + op
 	s6 = op + who * 2 + EMPTY + op
 	s7 = op + who * 2 + EMPTY + who + op
+	
+	s8 = EMPTY + YB * 4 + EMPTY
+	s9 = PLAYER + YB * 4 + EMPTY
 
+	s_w_yb = 5 * YB
+	s_w_player = 5 * PLAYER
+	
 	s = op + _str + op
 	ret = []
 	for i in re.finditer(s1, s):
@@ -42,41 +81,62 @@ def MatchCaseCorrection(who, _str):
 		c2 = Correction(pos2 - 1, EvalUnit ** 0.5)
 		ret.append(c1)
 		ret.append(c2)
-		print('case1')
+#		print('case1')
 	for i in re.finditer(s2, s):
 		beg = i.span()[0]
 		pos = beg + 4
 		ret.append(Correction(pos - 1, 1 / (EvalUnit**2)))
-		print('case 2')
+#		print('case 2')
 	for i in re.finditer(s4, s):
 		beg = i.span()[0]
 		pos1 = beg + 3
 		pos2 = beg + 4
 		ret.append(Correction(pos1 - 1, 1 / (EvalUnit**0.5)))
 		ret.append(Correction(pos2 - 1, EvalUnit ** 0.5))
-		print('case4')
+#		print('case4')
 	for i in re.finditer(s5, s):
 		beg = i.span()[0]
 		pos = beg + 3
 		ret.append(Correction(pos - 1, 1 / (EvalUnit**0.5)))
-		print('case5')
+#		print('case5')
 	for i in re.finditer(s6, s):
 		beg = i.span()[0]
 		pos = beg + 3
 		ret.append(Correction(pos - 1, 1 / EvalUnit))
-		print('case6')
+#		print('case6')
 	for i in re.finditer(s7, s):
 		beg = i.span()[0]
 		pos = beg + 3
 		ret.append(Correction(pos - 1, 1 / (EvalUnit**2)))
-		print('case7')
+#		print('case7')
+		
+	if who == YB:
+		for i in re.finditer(s8, s):
+			pos1 = i.span()[0]
+			pos2 = i.span()[0] + 5
+			ret.append(Correction(pos1 - 1, EvalUnit ** 2))
+			ret.append(Correction(pos2 - 1, EvalUnit ** 2))
+		for i in re.finditer(s9, s):
+			pos = i.span()[0] + 5
+			ret.append(Correction(pos - 1, EvalUnit ** 2))
+	
+	#TODO:很奇怪的bug，暂时无法用自定义异常		
+	if who == YB:
+		for i in re.finditer(s_w_yb, s):
+			raise AssertionError('YB')
+	if who == PLAYER:
+		for i in re.finditer(s_w_player, s):
+			raise AssertionError('PLAYER')
+
 	return ret
 
 def SumUp(a, b):
 	ret = [[0 for x in range(CHAT_SIZE)] for x in range(CHAT_SIZE)]
 	for x in range(CHAT_SIZE):
 		for y in range(CHAT_SIZE):
-			ret[x][y] += a[x][y] + b[x][y]
+			lhs = 0 if a[x][y] == 1 else a[x][y]
+			rhs = 0 if b[x][y] == 1 else b[x][y]
+			ret[x][y] += lhs + rhs
 	return ret
 
 def xScaleTable(x, table):
@@ -86,6 +146,8 @@ def xScaleTable(x, table):
 	
 class Gomoku(object):
 	def _init_square(self):
+		self.last_x = -1
+		self.last_y = -1
 		self.square = []
 		for i in range(CHAT_SIZE):
 			tmp = [EMPTY for x in range(CHAT_SIZE)]
@@ -115,10 +177,10 @@ class Gomoku(object):
 			ret += INDEX_LIST[x] + ' '
 		ret += '\n'
 		
-		for x in range(CHAT_SIZE):
-			ret += INDEX_LIST[x] + ' '
-			for y in range(CHAT_SIZE):
-				ret += self.square[y][x] + ' '
+		for y in range(CHAT_SIZE):
+			ret += INDEX_LIST[y] + ' '
+			for x in range(CHAT_SIZE):
+				ret += ('!' if x == self.last_x and y == self.last_y else self.square[x][y]) + ' '
 			ret += '\n'
 		return ret
 	
@@ -141,7 +203,7 @@ class Gomoku(object):
 		#XX_ _ _ left _ down to /unit
 		#XX__# left _ 衰减为/unit
 		#XX_#  _ down to /unit
-		#XX_X# _ down to / (unit)
+		#XX_X# _ down to / (unit)During handling of the above exception
 		'''
 		table = [[1 for x in range(CHAT_SIZE)] for x in range(CHAT_SIZE)]
 		op = YB if who == PLAYER else PLAYER
@@ -380,7 +442,7 @@ class Gomoku(object):
 		return table
 				
 	def GetRandAnswer(self, ls): #TODO
-		return ls
+		return ls[0][1], ls[0][2]
 				
 				
 	def _Evaluate(self, who):
@@ -413,14 +475,54 @@ class Gomoku(object):
 #		print(evaluateSelf)
 #		print(evaluatePlayer)
 		evaluate = SumUp(evaluateSelf, evaluatePlayer)
+		SideCorrection(evaluate)
+		
 		heap = []
 		for y in range(CHAT_SIZE):
 			for  x in range(CHAT_SIZE):
 				if not self._isDress(YB, y, x) and not self._isDress(PLAYER, y, x):
 					heapq.heappush(heap, (evaluate[y][x], y, x))
 		largest = heapq.nlargest(PICK_N_LARGEST, heap)
-		return self.GetRandAnswer(largest)
+		return largest
+		
+	def GetNextDressPosition(self):
+		self.last_x, self.last_y = self.GetRandAnswer(self.Evaluate())
+		return self.last_x, self.last_y
 		
 					
 if __name__ == '__main__':
 	gomoku = Gomoku()
+	print(gomoku)
+	while(True):
+		s = input('>>> ')
+		try:
+			x, y = ParseIntPair(s)
+		except (Exception):
+			print('please input <x, y>')
+			continue
+			
+		try:
+			gomoku.dress(PLAYER, x, y)
+			x, y = gomoku.GetNextDressPosition()
+			gomoku.dress(YB, x, y)
+			gomoku.Evaluate()
+			print(gomoku)
+		except (RuntimeError, ValueError, IndexError):
+			print('Unable to Dress {}, {}'.format(INDEX_LIST[x], INDEX_LIST[y]))
+		except AssertionError as e:
+			print(gomoku)
+			if str(e) == 'PLAYER':
+				print('You WIN!!!')
+			elif str(e) == 'YB':
+				print('You Lose!')
+			else : print('bug')
+			break
+		except Exception:
+			print('Unknow Bug')
+		
+			
+			
+			
+			
+			
+	

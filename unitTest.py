@@ -32,20 +32,23 @@ class TestGomoku(unittest.TestCase):
 #					with self.assertRaises(IndexError):
 #						gomoku.dress(YB if randint(0, 1) == 1 else PLAYER, x, y)
 #						
-	def test_evaluate(self):
-		num = 40
-		gomoku = Gomoku()
-		for i in range(num):
-			x = randint(0, CHAT_SIZE - 1)
-			y = randint(0, CHAT_SIZE - 1)
-			try:
-				gomoku.dress(YB if randint(0, 1) == 0 else PLAYER, y, x)
-			except Exception:
-				pass
-		res = gomoku.Evaluate()
-		print()
-		print(gomoku)
-		print(res)
+#	def test_evaluate(self):
+#		num = 40
+#		gomoku = Gomoku()
+#		for i in range(num):
+#			x = randint(0, CHAT_SIZE - 1)
+#			y = randint(0, CHAT_SIZE - 1)
+#			try:
+#				gomoku.dress(YB if randint(0, 1) == 0 else PLAYER, y, x)
+#			except Exception:
+#				pass
+#		print()
+#		print(gomoku)
+#		print(gomoku.Evaluate())
+#		print()
+#		print(gomoku._Evaluate(YB))
+#		print()
+#		print(gomoku._Evaluate(PLAYER))
 	
 #	def test_special_case1(self):
 #		gomoku = Gomoku()
@@ -231,5 +234,23 @@ class TestGomoku(unittest.TestCase):
 #		print()
 #		print(gomoku)
 #		print(res)
+#	def test_mayby_bug(self):
+#		gomoku = Gomoku()
+#		gomoku.dress(PLAYER, 4, 0)
+#		gomoku.dress(PLAYER, 5, 0)
+#		gomoku.dress(YB, 5, 1)
+#		gomoku.dress(PLAYER, 7, 1)
+#		ret = gomoku.Evaluate()
+#		print(gomoku)
+#		print(ret)
+
+	def test_release(self):
+		gomoku = Gomoku()
+		gomoku.Evaluate()
+		
+		
+		
+		
+		
 if __name__ == '__main__':
 	unittest.main()
