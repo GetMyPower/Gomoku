@@ -8,6 +8,11 @@ def YBHasWin(Exception):
 def PLAYERHasWin(Exception):
 	pass
 
+def MyQuit():
+	s = ''
+	while(s != 'q'):
+		s = input('输入q结束对战\n>>> ')
+	
 def MatchContinueDress(who, s):
 	ret = []
 	pattern = MATCH_YB_CONTINUE_DRESS if who == YB else MATCH_PLAYER_CONTINUE_DRESS
@@ -67,6 +72,8 @@ def MatchCaseCorrection(who, _str):
 	
 	s8 = EMPTY + YB * 4 + EMPTY
 	s9 = PLAYER + YB * 4 + EMPTY
+	s10 = EMPTY + PLAYER * 4 + EMPTY
+	s11 = YB + PLAYER * 4 + EMPTY
 
 	s_w_yb = 5 * YB
 	s_w_player = 5 * PLAYER
@@ -114,11 +121,29 @@ def MatchCaseCorrection(who, _str):
 		for i in re.finditer(s8, s):
 			pos1 = i.span()[0]
 			pos2 = i.span()[0] + 5
-			ret.append(Correction(pos1 - 1, EvalUnit ** 2))
-			ret.append(Correction(pos2 - 1, EvalUnit ** 2))
+			#a very most big number
+			#8 是对称的
+			ret.append(Correction(pos1 - 1, EvalUnit ** 8))
+			ret.append(Correction(pos2 - 1, EvalUnit ** 8))
+#			print('about to win 1')
 		for i in re.finditer(s9, s):
 			pos = i.span()[0] + 5
-			ret.append(Correction(pos - 1, EvalUnit ** 2))
+			ret.append(Correction(pos - 1, EvalUnit ** 16))
+#			print('about to win 2')
+		
+	if who == PLAYER:
+		for i in re.finditer(s10, s):
+			pos1 = i.span()[0]
+			pos2 = i.span()[0] + 5
+			#a rather big number
+			#10是对称的
+			ret.append(Correction(pos1 - 1, EvalUnit ** 4))
+			ret.append(Correction(pos2 - 1, EvalUnit ** 4))
+#			print('about to win 3')
+		for i in re.finditer(s11, s):
+			pos = i.span()[0] + 5
+			ret.append(Correction(pos - 1, EvalUnit ** 8))
+#			print('about to win 4')
 	
 	#TODO:很奇怪的bug，暂时无法用自定义异常		
 	if who == YB:
@@ -516,6 +541,7 @@ if __name__ == '__main__':
 			elif str(e) == 'YB':
 				print('You Lose!')
 			else : print('bug')
+			MyQuit()
 			break
 		except Exception:
 			print('Unknow Bug')
