@@ -25,9 +25,9 @@ def EvaluateRecurse(g, x, y, deep):
 	
 	ls = gomoku.Evaluate()
 	if gomoku.YBHasWin == True:
-		return MAX_INT
+		return YB_WIN_INT
 	if gomoku.PLAYERHasWin == True:
-		return MIN_INT
+		return YB_LOSE_INT
 
 			
 	if (deep == 0):
@@ -101,6 +101,7 @@ def MatchCaseCorrection(self, who, _str):
 #	
 #	w_yb XXXXX
 #	w_player XXXXX
+#	12 _XXX_
 #	'''
 	op = YB if who == PLAYER else PLAYER
 #	s1 = op + who * 3 + EMPTY * 2
@@ -115,6 +116,7 @@ def MatchCaseCorrection(self, who, _str):
 #	s9 = PLAYER + YB * 4 + EMPTY
 #	s10 = EMPTY + PLAYER * 4 + EMPTY
 #	s11 = YB + PLAYER * 4 + EMPTY
+	s12 = EMPTY + 3 * who + EMPTY
 	s_w_yb = 5 * YB
 	s_w_player = 5 * PLAYER
 #	
@@ -180,6 +182,10 @@ def MatchCaseCorrection(self, who, _str):
 #			pos = i.span()[0] + 5
 #			ret.append(Correction(pos - 1, EvalUnit ** 2))
 ##			print('about to win 4')
+		for i in re.finditer(s12, s):
+			pos = i.span()[0]
+			ret.append(Correction(pos - 1, EvalUnit ** 2))
+			print('_XXX_')
 	if who == YB:
 		for i in re.finditer(s_w_yb, s):
 			self.YBHasWin = True
@@ -276,14 +282,14 @@ class Gomoku(object):
 			for group in group_list:
 				b = group.begin - 1
 				while b >= 0 and not self._isDress(op, b, y):
-					value = EvalUnit ** (group.length - (group.begin - b) + 1)
+					value = EvalUnit ** (group.length - (group.begin - b) + 2)
 					if value <= 1: break
 #					print(b, y, value)
 					table[b][y] *= value
 					b -= 1
 				b = group.end + 1
 				while b < CHAT_SIZE and not self._isDress(op, b, y):
-					value = EvalUnit ** (group.length - (b - group.end) + 1)
+					value = EvalUnit ** (group.length - (b - group.end) + 2)
 					if value <= 1:break
 #					print(b, y, value)
 					table[b][y] *= value
@@ -308,14 +314,14 @@ class Gomoku(object):
 			for group in group_list:
 				b = group.begin - 1
 				while b >= 0 and not self._isDress(op, col, b):
-					value = EvalUnit ** (group.length - (group.begin - b) + 1)
+					value = EvalUnit ** (group.length - (group.begin - b) + 2)
 					if value <= 1: break
 #					print(col, b, value)
 					table[col][b] *= value
 					b -= 1
 				b = group.end + 1
 				while b < CHAT_SIZE and not self._isDress(op, col, b):
-					value = EvalUnit ** (group.length - (b - group.end) + 1)
+					value = EvalUnit ** (group.length - (b - group.end) + 2)
 					if value <= 1:break
 #					print(col, b, value)
 					table[col][b] *= value
@@ -354,7 +360,7 @@ class Gomoku(object):
 				bx = start_x - group.begin + 1
 				by = 0 + group.begin - 1
 				while by >= 0 and not self._isDress(op, bx, by):
-					value = EvalUnit ** (group.length - (bx - start_x + group.begin) + 1)
+					value = EvalUnit ** (group.length - (bx - start_x + group.begin) + 2)
 					if value <= 1: break
 #					print(1, bx, by, value)
 					table[bx][by] *= value
@@ -363,7 +369,7 @@ class Gomoku(object):
 				bx = start_x - group.end - 1
 				by = 0 + group.end + 1
 				while bx >= 0 and not self._isDress(op, bx, by):
-					value = EvalUnit ** (group.length - (start_x - group.end - bx) + 1)
+					value = EvalUnit ** (group.length - (start_x - group.end - bx) + 2)
 					if value <= 1:break
 					table[bx][by] *= value
 					bx -= 1
@@ -393,7 +399,7 @@ class Gomoku(object):
 				bx = CHAT_SIZE - 1 - group.begin + 1
 				by = start_y + group.begin - 1
 				while by >= 0 and bx < CHAT_SIZE and not self._isDress(op, bx, by):
-					value = EvalUnit ** (group.length - (start_y + group.begin - by) + 1)
+					value = EvalUnit ** (group.length - (start_y + group.begin - by) + 2)
 					if value <= 1: break
 #					print(bx, by, value)
 					table[bx][by] *= value
@@ -402,7 +408,7 @@ class Gomoku(object):
 				bx = CHAT_SIZE - 1 - group.end - 1
 				by = start_y + group.end + 1
 				while bx >= 0 and by < CHAT_SIZE and not self._isDress(op, bx, by):
-					value = EvalUnit ** (group.length - (by - start_y - group.end) + 1)
+					value = EvalUnit ** (group.length - (by - start_y - group.end) + 2)
 					if value <= 1:break
 #					print(bx, by, value)
 					table[bx][by] *= value
@@ -436,7 +442,7 @@ class Gomoku(object):
 				bx = start_x + group.begin - 1
 				by = 0 + group.begin - 1
 				while by >= 0 and bx >= 0 and not self._isDress(op, bx, by):
-					value = EvalUnit ** (group.length - (start_x + group.begin - bx) + 1)
+					value = EvalUnit ** (group.length - (start_x + group.begin - bx) + 2)
 					if value <= 1: break
 #					print(bx, by, value)
 					table[bx][by] *= value
@@ -445,7 +451,7 @@ class Gomoku(object):
 				bx = start_x + group.end + 1
 				by = 0 + group.end + 1
 				while bx < CHAT_SIZE and not self._isDress(op, bx, by):
-					value = EvalUnit ** (group.length - (bx - start_x - group.end) + 1)
+					value = EvalUnit ** (group.length - (bx - start_x - group.end) + 2)
 					if value <= 1:break
 #					print(bx, by, value)
 					table[bx][by] *= value
@@ -476,7 +482,7 @@ class Gomoku(object):
 				bx = 0 + group.begin - 1
 				by = start_y + group.begin - 1
 				while by < CHAT_SIZE and bx >= 0 and not self._isDress(op, bx, by):
-					value = EvalUnit ** (group.length - (start_y + group.begin - by) + 1)
+					value = EvalUnit ** (group.length - (start_y + group.begin - by) + 2)
 					if value <= 1: break
 #					print(bx, by, value)
 					table[bx][by] *= value
@@ -485,7 +491,7 @@ class Gomoku(object):
 				bx = 0 + group.end + 1
 				by = start_y + group.end + 1
 				while bx < CHAT_SIZE and by < CHAT_SIZE and not self._isDress(op, bx, by):
-					value = EvalUnit ** (group.length - (by - start_y - group.end) + 1)
+					value = EvalUnit ** (group.length - (by - start_y - group.end) + 2)
 					if value <= 1:break
 #					print(bx, by, value)
 					table[bx][by] *= value

@@ -5,13 +5,15 @@ PLAYER = '@'
 EMPTY = ' '
 PICK_N_LARGEST = 2
 RECURSE_DEEP = 4
-EvalUnit = 4
+EvalUnit = 2
 AGRESSIVE = 0.6
 MATCH_YB_CONTINUE_DRESS = YB + '+'
 MATCH_PLAYER_CONTINUE_DRESS = PLAYER + '+'
 
 MAX_INT = 10 ** 10
 MIN_INT = -1 * MAX_INT
+YB_WIN_INT = MAX_INT / 10
+YB_LOSE_INT = MIN_INT / 10
 #about regex
 ''' 
 #XXX__ __平均为 **2.5
