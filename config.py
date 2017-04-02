@@ -1,14 +1,17 @@
 CHAT_SIZE = 14
-INDEX_LIST = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'w', 'y', 'z', 'v', 't', 's', 'r', 'q', 'n', 'l', 'k', 'j', 'i', 'h', 'g', 'f', 'e', 'd', 'c', 'b','a']
+INDEX_LIST = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'w', 'y', 'z', 'v', 't', 's', 'r', 'p', 'n', 'l', 'k', 'j', 'i', 'h', 'g', 'f', 'e', 'd', 'c', 'b','a']
 YB = 'X'
 PLAYER = '@'
 EMPTY = ' '
-PICK_N_LARGEST = 4
+PICK_N_LARGEST = 2
+RECURSE_DEEP = 4
 EvalUnit = 4
 AGRESSIVE = 0.6
 MATCH_YB_CONTINUE_DRESS = YB + '+'
 MATCH_PLAYER_CONTINUE_DRESS = PLAYER + '+'
 
+MAX_INT = 10 ** 10
+MIN_INT = -1 * MAX_INT
 #about regex
 ''' 
 #XXX__ __平均为 **2.5

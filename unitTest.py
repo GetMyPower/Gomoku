@@ -49,6 +49,20 @@ class TestGomoku(unittest.TestCase):
 #		print(gomoku._Evaluate(YB))
 #		print()
 #		print(gomoku._Evaluate(PLAYER))
+
+	def test_time(self):
+		num = 40
+		gomoku = Gomoku()
+		for i in range(num):
+			x = randint(0, CHAT_SIZE - 1)
+			y = randint(0, CHAT_SIZE - 1)
+			try:
+				gomoku.dress(YB if randint(0, 1) == 0 else PLAYER, y, x)
+			except Exception:
+				pass
+		times = 200
+		for i in range(times):
+			gomoku.Evaluate()
 	
 #	def test_special_case1(self):
 #		gomoku = Gomoku()

@@ -2,17 +2,57 @@ from config import *
 import heapq
 import re
 from Group import *
-
-def YBHasWin(Exception):
-	pass
-def PLAYERHasWin(Exception):
-	pass
+import copy
 
 def MyQuit():
 	s = ''
 	while(s != 'q'):
 		s = input('输入q结束对战\n>>> ')
+
+def findMax(table):
+	Max = table[0][0]
+	for i in range(CHAT_SIZE):
+		for j in range(CHAT_SIZE):
+			if table[i][j] > Max:
+				Max = table[i][j]
+	return Max
+#TODO:
+def EvaluateRecurse(g, x, y, deep):
+#	print(g, x, y, deep)
+	gomoku = copy.deepcopy(g)
+	who = YB if deep % 2 == 0 else PLAYER
+	gomoku.dress(who, x, y)
 	
+	ls = gomoku.Evaluate()
+	if gomoku.YBHasWin == True:
+		return MAX_INT
+	if gomoku.PLAYERHasWin == True:
+		return MIN_INT
+
+			
+	if (deep == 0):
+		s = gomoku._Evaluate(YB)
+		p = gomoku._Evaluate(PLAYER)
+		return findMax(s) - findMax(p)
+	
+	if deep % 2 == 0:
+		Min = MAX_INT
+		for play in ls:
+			tmp = EvaluateRecurse(gomoku, play[1], play[2], deep - 1)
+#			print(gomoku, play[1], play[2], tmp)
+			if tmp < Min:
+				Min = tmp
+		return Min
+	elif deep % 2 == 1:
+		Max = MIN_INT
+		for play in ls:
+			tmp = EvaluateRecurse(gomoku, play[1], play[2], deep - 1)
+#			print(gomoku, play[1], play[2], tmp)
+			if tmp > Max:
+				Max = tmp
+		return Max
+
+
 def MatchContinueDress(who, s):
 	ret = []
 	pattern = MATCH_YB_CONTINUE_DRESS if who == YB else MATCH_PLAYER_CONTINUE_DRESS
@@ -37,123 +77,117 @@ def ParseIntPair(s):
 	return tuple(ret)
 
 def SideCorrection(table):
-	cor = 1 / (EvalUnit ** 0.5)
-	for x in range(CHAT_SIZE):
-		table[x][0] *= cor
-		table[x][CHAT_SIZE - 1] *= cor
-	for y in range(CHAT_SIZE):
-		table[0][y] *= cor
-		table[CHAT_SIZE - 1][y] *= cor
+#	cor = 1 / (EvalUnit ** 0.5)
+#	for x in range(CHAT_SIZE):
+#		table[x][0] *= cor
+#		table[x][CHAT_SIZE - 1] *= cor
+#	for y in range(CHAT_SIZE):
+#		table[0][y] *= cor
+#		table[CHAT_SIZE - 1][y] *= cor
+	pass
 
 #TODO:注意双向！要写全！
-def MatchCaseCorrection(who, _str):
-	''' 
-	1 #XXX__ __平均为 **2.5
-	2 #XXX_# _衰减 / unit
-	4 #XX_ _ _ left _ down to / (unit ** 0.5)
-	5 #XX__# left _ 衰减为/unit
-	6 #XX_#  _ down to /unit
-	7 #XX_X# _ down to / (unit)
-	
-	8 _XXXX_
-	9 #XXXX_
-	
-	w_yb XXXXX
-	w_player XXXXX
-	'''
+def MatchCaseCorrection(self, who, _str):
+#	''' 
+#	1 #XXX__ __平均为 **2.5
+#	2 #XXX_# _衰减 / unit
+#	4 #XX_ _ _ left _ down to / (unit ** 0.5)
+#	5 #XX__# left _ 衰减为/unit
+#	6 #XX_#  _ down to /unit
+#	7 #XX_X# _ down to / (unit)
+#	
+#	8 _XXXX_
+#	9 #XXXX_
+#	
+#	w_yb XXXXX
+#	w_player XXXXX
+#	'''
 	op = YB if who == PLAYER else PLAYER
-	s1 = op + who * 3 + EMPTY * 2
+#	s1 = op + who * 3 + EMPTY * 2
 	s2 = op + who * 3 + EMPTY + op
-	s3 = op + EMPTY + who * 2 + EMPTY + op
-	s4 = op + who * 2 + EMPTY * 3
-	s5 = op + who * 2 + EMPTY * 2 + op
-	s6 = op + who * 2 + EMPTY + op
+#	s3 = op + EMPTY + who * 2 + EMPTY + op
+#	s4 = op + who * 2 + EMPTY * 3
+#	s5 = op + who * 2 + EMPTY * 2 + op
+#	s6 = op + who * 2 + EMPTY + op
 	s7 = op + who * 2 + EMPTY + who + op
-	
-	s8 = EMPTY + YB * 4 + EMPTY
-	s9 = PLAYER + YB * 4 + EMPTY
-	s10 = EMPTY + PLAYER * 4 + EMPTY
-	s11 = YB + PLAYER * 4 + EMPTY
-
+#	
+#	s8 = EMPTY + YB * 4 + EMPTY
+#	s9 = PLAYER + YB * 4 + EMPTY
+#	s10 = EMPTY + PLAYER * 4 + EMPTY
+#	s11 = YB + PLAYER * 4 + EMPTY
 	s_w_yb = 5 * YB
 	s_w_player = 5 * PLAYER
-	
+#	
 	s = op + _str + op
 	ret = []
-	for i in re.finditer(s1, s):
-		beg = i.span()[0]
-		pos1 = beg + 4
-		pos2 = beg + 5
-		c1 = Correction(pos1 - 1, EvalUnit ** -0.5)
-		c2 = Correction(pos2 - 1, EvalUnit ** 0.5)
-		ret.append(c1)
-		ret.append(c2)
-#		print('case1')
+#	for i in re.finditer(s1, s):
+#		beg = i.span()[0]
+#		pos1 = beg + 4
+#		pos2 = beg + 5
+#		c1 = Correction(pos1 - 1, EvalUnit ** -0.5)
+#		c2 = Correction(pos2 - 1, EvalUnit ** 0.5)
+#		ret.append(c1)
+#		ret.append(c2)
+##		print('case1')
 	for i in re.finditer(s2, s):
 		beg = i.span()[0]
 		pos = beg + 4
 		ret.append(Correction(pos - 1, 1 / (EvalUnit**2)))
 #		print('case 2')
-	for i in re.finditer(s4, s):
-		beg = i.span()[0]
-		pos1 = beg + 3
-		pos2 = beg + 4
-		ret.append(Correction(pos1 - 1, 1 / (EvalUnit**0.5)))
-		ret.append(Correction(pos2 - 1, EvalUnit ** 0.5))
-#		print('case4')
-	for i in re.finditer(s5, s):
-		beg = i.span()[0]
-		pos = beg + 3
-		ret.append(Correction(pos - 1, 1 / (EvalUnit**0.5)))
-#		print('case5')
-	for i in re.finditer(s6, s):
-		beg = i.span()[0]
-		pos = beg + 3
-		ret.append(Correction(pos - 1, 1 / EvalUnit))
-#		print('case6')
+#	for i in re.finditer(s4, s):
+#		beg = i.span()[0]
+#		pos1 = beg + 3
+#		pos2 = beg + 4
+#		ret.append(Correction(pos1 - 1, 1 / (EvalUnit**0.5)))
+#		ret.append(Correction(pos2 - 1, EvalUnit ** 0.5))
+##		print('case4')
+#	for i in re.finditer(s5, s):
+#		beg = i.span()[0]
+#		pos = beg + 3
+#		ret.append(Correction(pos - 1, 1 / (EvalUnit**0.5)))
+##		print('case5')
+#	for i in re.finditer(s6, s):
+#		beg = i.span()[0]
+#		pos = beg + 3
+#		ret.append(Correction(pos - 1, 1 / EvalUnit))
+##		print('case6')
 	for i in re.finditer(s7, s):
 		beg = i.span()[0]
 		pos = beg + 3
 		ret.append(Correction(pos - 1, 1 / (EvalUnit**2)))
-#		print('case7')
-		
-	if who == YB:
-		for i in re.finditer(s8, s):
-			pos1 = i.span()[0]
-			pos2 = i.span()[0] + 5
-			#a very most big number
-			#8 是对称的
-			ret.append(Correction(pos1 - 1, EvalUnit ** 8))
-			ret.append(Correction(pos2 - 1, EvalUnit ** 8))
-#			print('about to win 1')
-		for i in re.finditer(s9, s):
-			pos = i.span()[0] + 5
-			ret.append(Correction(pos - 1, EvalUnit ** 16))
-#			print('about to win 2')
-		
-	if who == PLAYER:
-		for i in re.finditer(s10, s):
-			pos1 = i.span()[0]
-			pos2 = i.span()[0] + 5
-			#a rather big number
-			#10是对称的
-			ret.append(Correction(pos1 - 1, EvalUnit ** 4))
-			ret.append(Correction(pos2 - 1, EvalUnit ** 4))
-#			print('about to win 3')
-		for i in re.finditer(s11, s):
-			pos = i.span()[0] + 5
-			ret.append(Correction(pos - 1, EvalUnit ** 8))
-#			print('about to win 4')
-	
-	#TODO:很奇怪的bug，暂时无法用自定义异常		
+##		print('case7')
+#		
+#	if who == YB:
+#		for i in re.finditer(s8, s):
+#			pos1 = i.span()[0]
+#			#a very most big number
+#			#8 是对称的
+#			ret.append(Correction(pos1 - 1, EvalUnit ** 4))
+##			print('about to win 1')
+#		for i in re.finditer(s9, s):
+#			pos = i.span()[0] + 5
+#			ret.append(Correction(pos - 1, EvalUnit ** 4))
+##			print('about to win 2')
+#		
+#	if who == PLAYER:
+#		for i in re.finditer(s10, s):
+#			pos1 = i.span()[0]
+#			#a rather big number
+#			#10是对称的
+#			ret.append(Correction(pos1 - 1, EvalUnit ** 2))
+##			print('about to win 3')
+#		for i in re.finditer(s11, s):
+#			pos = i.span()[0] + 5
+#			ret.append(Correction(pos - 1, EvalUnit ** 2))
+##			print('about to win 4')
 	if who == YB:
 		for i in re.finditer(s_w_yb, s):
-			raise AssertionError('YB')
+			self.YBHasWin = True
 	if who == PLAYER:
 		for i in re.finditer(s_w_player, s):
-			raise AssertionError('PLAYER')
-
+			self.PLAYERHasWin = True
 	return ret
+
 
 def SumUp(a, b):
 	ret = [[0 for x in range(CHAT_SIZE)] for x in range(CHAT_SIZE)]
@@ -171,6 +205,8 @@ def xScaleTable(x, table):
 	
 class Gomoku(object):
 	def _init_square(self):
+		self.YBHasWin = False
+		self.PLAYERHasWin = False
 		self.last_x = -1
 		self.last_y = -1
 		self.square = []
@@ -179,7 +215,7 @@ class Gomoku(object):
 			self.square.append(tmp)				
 			
 	def __init__(self):
-		self._init_square()
+		self._init_square()		
 	
 	def _checkIndex(self, x, y):
 		if x < 0 or x >= CHAT_SIZE:
@@ -253,11 +289,11 @@ class Gomoku(object):
 					table[b][y] *= value
 					b += 1
 			
-			correction = MatchCaseCorrection(who, row_str)
+			correction = MatchCaseCorrection(self, who, row_str)
 			for item in correction:
 				table[item.position][y] *= item.value
 			
-			correction = MatchCaseCorrection(who, row_str[::-1])
+			correction = MatchCaseCorrection(self, who, row_str[::-1])
 			for item in correction:
 				table[CHAT_SIZE - 1 - item.position][y] *= item.value
 		return table
@@ -286,11 +322,11 @@ class Gomoku(object):
 					b += 1
 					
 #			print(':', col_str)
-			correction = MatchCaseCorrection(who, col_str)
+			correction = MatchCaseCorrection(self, who, col_str)
 			for item in correction:
 				table[col][item.position] *= item.value
 			
-			correction = MatchCaseCorrection(who, col_str[::-1])
+			correction = MatchCaseCorrection(self, who, col_str[::-1])
 			for item in correction:
 				table[col][CHAT_SIZE - 1 - item.position] *= item.value
 		return table
@@ -333,11 +369,11 @@ class Gomoku(object):
 					bx -= 1
 					by += 1
 #			print(':', slope_str)
-			correction = MatchCaseCorrection(who, slope_str)
+			correction = MatchCaseCorrection(self, who, slope_str)
 			for item in correction:
 				table[start_x - item.position][0 + item.position] *= item.value
 			
-			correction = MatchCaseCorrection(who, slope_str[::-1])
+			correction = MatchCaseCorrection(self, who, slope_str[::-1])
 			for item in correction:
 				table[item.position][start_x - item.position] *= item.value
 					
@@ -373,11 +409,11 @@ class Gomoku(object):
 					bx -= 1
 					by += 1
 					
-			correction = MatchCaseCorrection(who, slope_str)		
+			correction = MatchCaseCorrection(self, who, slope_str)		
 			for item in correction:
 				table[CHAT_SIZE - 1 - item.position][start_y + item.position] *= item.value
 			
-			correction = MatchCaseCorrection(who, slope_str[::-1])
+			correction = MatchCaseCorrection(self, who, slope_str[::-1])
 			for item in correction:
 				table[start_y + item.position][CHAT_SIZE - 1 - item.position] *= item.value
 		#TODO:start here
@@ -416,11 +452,11 @@ class Gomoku(object):
 					bx += 1
 					by += 1
 					
-			correction = MatchCaseCorrection(who, slope_str)
+			correction = MatchCaseCorrection(self, who, slope_str)
 			for item in correction:
 				table[start_x + item.position][0 + item.position] *= item.value
 			
-			correction = MatchCaseCorrection(who, slope_str[::-1])
+			correction = MatchCaseCorrection(self, who, slope_str[::-1])
 			for item in correction:
 				table[CHAT_SIZE - 1 - item.position][CHAT_SIZE - 1 - start_x - item.position] *= item.value
 					
@@ -456,18 +492,31 @@ class Gomoku(object):
 					bx += 1
 					by += 1
 					
-			correction = MatchCaseCorrection(who, slope_str)
+			correction = MatchCaseCorrection(self, who, slope_str)
 			for item in correction:
 				table[0 + item.position][start_y + item.position] *= item.value
 			
-			correction = MatchCaseCorrection(who, slope_str[::-1])
+			correction = MatchCaseCorrection(self, who, slope_str[::-1])
 			for item in correction:
 				table[CHAT_SIZE - 1 - start_y - item.position][CHAT_SIZE - 1 - item.position] *= item.value
 				
 		return table
+	
+					
 				
 	def GetRandAnswer(self, ls): #TODO
-		return ls[0][1], ls[0][2]
+		Max = MIN_INT
+		x = ls[0][1]
+		y = ls[0][2]
+		for play in ls:
+			tmp = EvaluateRecurse(self, play[1], play[2], RECURSE_DEEP)
+#			print(tmp, play[1], play[2])
+			if tmp > Max:
+				Max = tmp
+				x = play[1]
+				y = play[2]
+				
+		return x, y
 				
 				
 	def _Evaluate(self, who):
@@ -525,26 +574,24 @@ if __name__ == '__main__':
 		except (Exception):
 			print('please input <x, y>')
 			continue
-			
-		try:
+		try:	
 			gomoku.dress(PLAYER, x, y)
 			x, y = gomoku.GetNextDressPosition()
 			gomoku.dress(YB, x, y)
-			gomoku.Evaluate()
 			print(gomoku)
+			gomoku.Evaluate()
 		except (RuntimeError, ValueError, IndexError):
 			print('Unable to Dress {}, {}'.format(INDEX_LIST[x], INDEX_LIST[y]))
-		except AssertionError as e:
-			print(gomoku)
-			if str(e) == 'PLAYER':
-				print('You WIN!!!')
-			elif str(e) == 'YB':
-				print('You Lose!')
-			else : print('bug')
+		if gomoku.YBHasWin == True:
+			print('You Lose!')
 			MyQuit()
 			break
-		except Exception:
-			print('Unknow Bug')
+		elif gomoku.PLAYERHasWin == True:
+			print('YOU has Win!!')
+			MyQuit()
+			break
+#		except Exception:
+#			print('Unknow Bug')
 		
 			
 			
