@@ -102,6 +102,7 @@ def MatchCaseCorrection(self, who, _str):
 #	w_yb XXXXX
 #	w_player XXXXX
 #	12 _XXX_
+#	13_XXXX
 #	'''
 	op = YB if who == PLAYER else PLAYER
 #	s1 = op + who * 3 + EMPTY * 2
@@ -117,6 +118,7 @@ def MatchCaseCorrection(self, who, _str):
 #	s10 = EMPTY + PLAYER * 4 + EMPTY
 #	s11 = YB + PLAYER * 4 + EMPTY
 	s12 = EMPTY + 3 * who + EMPTY
+	s13 = EMPTY + 4 * who
 	s_w_yb = 5 * YB
 	s_w_player = 5 * PLAYER
 #	
@@ -182,10 +184,13 @@ def MatchCaseCorrection(self, who, _str):
 #			pos = i.span()[0] + 5
 #			ret.append(Correction(pos - 1, EvalUnit ** 2))
 ##			print('about to win 4')
-		for i in re.finditer(s12, s):
-			pos = i.span()[0]
-			ret.append(Correction(pos - 1, EvalUnit ** 2))
-			print('_XXX_')
+	for i in re.finditer(s12, s):
+		pos = i.span()[0]
+		ret.append(Correction(pos - 1, EvalUnit ** 0.5))
+#		print('_XXX_')
+	for i in re.finditer(s13, s):
+		pos = i.span()[0]
+		ret.append(Correction(pos - 1, EvalUnit**2))
 	if who == YB:
 		for i in re.finditer(s_w_yb, s):
 			self.YBHasWin = True
@@ -516,7 +521,7 @@ class Gomoku(object):
 		y = ls[0][2]
 		for play in ls:
 			tmp = EvaluateRecurse(self, play[1], play[2], RECURSE_DEEP)
-#			print(tmp, play[1], play[2])
+			print(tmp, play[1], play[2])
 			if tmp > Max:
 				Max = tmp
 				x = play[1]
@@ -571,6 +576,22 @@ class Gomoku(object):
 		
 					
 if __name__ == '__main__':
+	print('请选择难度等级, 1 简单，2 中等，3 困难')
+	difficulty = -1
+	try:
+		difficulty = int(input('>>> '))
+	except ValueError:
+		print('请输入1~3的整数')
+	while(difficulty != 1 and difficulty != 2 and difficulty != 3):
+		difficulty = input('>>> ')
+	if difficulty == 1:
+		RECURSE_DEEP = 0
+	elif difficulty == 2:
+		RECURSE_DEEP = 4
+	elif difficulty == 3:
+		RECURSE_DEEP = 6
+
+	print(RECURSE_DEEP)
 	gomoku = Gomoku()
 	print(gomoku)
 	while(True):
@@ -582,6 +603,11 @@ if __name__ == '__main__':
 			continue
 		try:	
 			gomoku.dress(PLAYER, x, y)
+			gomoku.Evaluate()
+			if gomoku.PLAYERHasWin == True:
+				print('YOU has Win!!')
+				MyQuit()
+				break
 			x, y = gomoku.GetNextDressPosition()
 			gomoku.dress(YB, x, y)
 			print(gomoku)
@@ -590,10 +616,6 @@ if __name__ == '__main__':
 			print('Unable to Dress {}, {}'.format(INDEX_LIST[x], INDEX_LIST[y]))
 		if gomoku.YBHasWin == True:
 			print('You Lose!')
-			MyQuit()
-			break
-		elif gomoku.PLAYERHasWin == True:
-			print('YOU has Win!!')
 			MyQuit()
 			break
 #		except Exception:
